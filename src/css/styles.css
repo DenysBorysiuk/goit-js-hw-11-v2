@@ -76,3 +76,12 @@ img {
   align-items: center;
   gap: 10px;
 }
+
+.load-more {
+  display: block;
+  margin: 20px auto;
+}
+
+.is-hidden {
+  display: none;
+}

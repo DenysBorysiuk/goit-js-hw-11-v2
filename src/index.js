@@ -10,13 +10,14 @@ let searchTerm;
 let page = 1;
 var lightbox = new SimpleLightbox('.gallery a');
 
-refs.form.addEventListener('submit', onSubmit);
-refs.loadMoreBtn.addEventListener('click', onClick);
+refs.form.addEventListener('submit', onSearch);
+refs.loadMoreBtn.addEventListener('click', onLoadMore);
 
-function onSubmit(e) {
+function onSearch(e) {
   e.preventDefault();
   searchTerm = e.target.searchQuery.value;
   refs.gallery.innerHTML = '';
+  refs.loadMoreBtn.classList.add('is-hidden');
   page = 1;
   if (searchTerm === '') {
     return Notify.failure(
@@ -38,11 +39,12 @@ function onSubmit(e) {
       );
       lightbox.refresh();
       page += 1;
+      refs.loadMoreBtn.classList.remove('is-hidden');
     })
     .catch(error => console.log(error));
 }
 
-function onClick(e) {
+function onLoadMore(e) {
   getImages(searchTerm, page)
     .then(resp => {
       page += 1;
@@ -51,8 +53,18 @@ function onClick(e) {
         createMarkup(resp.data.hits)
       );
       lightbox.refresh();
+      const { height: cardHeight } = document
+        .querySelector('.gallery')
+        .firstElementChild.getBoundingClientRect();
+
+      window.scrollBy({
+        top: cardHeight * 2,
+        behavior: 'smooth',
+      });
+
       if (resp.data.hits < 40) {
         searchTerm = '';
+        refs.loadMoreBtn.classList.add('is-hidden');
         return Notify.failure(
           "We're sorry, but you've reached the end of search results."
         );
@@ -60,39 +72,10 @@ function onClick(e) {
     })
     .catch(error => {
       if (error.response) {
+        refs.loadMoreBtn.classList.add('is-hidden');
         Notify.failure(
           "We're sorry, but you've reached the end of search results."
         );
       }
     });
 }
-// function onLoad(entries, observer) {
-//   entries.forEach(entry => {
-//     if (entry.isIntersecting) {
-//       getImages(searchTerm, page)
-//         .then(resp => {
-//           page += 1;
-//           refs.gallery.insertAdjacentHTML(
-//             'beforeend',
-//             createMarkup(resp.data.hits)
-//           );
-//           lightbox.refresh();
-//           if (resp.data.hits < 40) {
-//             observer.unobserve(refs.guard);
-//             searchTerm = '';
-//             return Notify.failure(
-//               "We're sorry, but you've reached the end of search results."
-//             );
-//           }
-//         })
-//         .catch(error => {
-//           if (error.response) {
-//             observer.unobserve(refs.guard);
-//             Notify.failure(
-//               "We're sorry, but you've reached the end of search results."
-//             );
-//           }
-//         });
-//     }
-//   });
-// }
