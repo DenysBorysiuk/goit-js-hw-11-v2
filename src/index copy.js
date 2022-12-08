@@ -1,12 +1,13 @@
 import './css/styles.css';
-import ApiService from './js/apiService';
+import { getImages } from './js/apiService';
 import refs from './js/refs';
 import cardTpl from './templates/card.hbs';
 import { Notify } from 'notiflix/build/notiflix-notify-aio';
 import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 
-const apiService = new ApiService();
+let searchTerm;
+let page = 1;
 var lightbox = new SimpleLightbox('.gallery a');
 
 refs.form.addEventListener('submit', onSearch);
@@ -14,20 +15,19 @@ refs.loadMoreBtn.addEventListener('click', onLoadMore);
 
 function onSearch(e) {
   e.preventDefault();
-  apiService.query = e.target.searchQuery.value;
-  apiService.resetPage();
+  searchTerm = e.target.searchQuery.value;
   refs.gallery.innerHTML = '';
   refs.loadMoreBtn.classList.add('is-hidden');
-  if (e.target.searchQuery.value === '') {
+  page = 1;
+  if (searchTerm === '') {
     return Notify.failure(
       'Sorry, there are no images matching your search query. Please try again.'
     );
   }
-  apiService
-    .getImages()
+  getImages(searchTerm, page)
     .then(resp => {
       if (resp.data.totalHits === 0) {
-        apiService.searchQuery = '';
+        searchTerm = '';
         return Notify.failure(
           'Sorry, there are no images matching your search query. Please try again.'
         );
@@ -38,17 +38,16 @@ function onSearch(e) {
         createMarkup(resp.data.hits)
       );
       lightbox.refresh();
-      apiService.incrementPage();
+      page += 1;
       refs.loadMoreBtn.classList.remove('is-hidden');
     })
     .catch(error => console.log(error));
 }
 
-function onLoadMore() {
-  apiService
-    .getImages()
+function onLoadMore(e) {
+  getImages(searchTerm, page)
     .then(resp => {
-      apiService.incrementPage();
+      page += 1;
       refs.gallery.insertAdjacentHTML(
         'beforeend',
         createMarkup(resp.data.hits)
@@ -64,7 +63,7 @@ function onLoadMore() {
       });
 
       if (resp.data.hits < 40) {
-        apiService.searchQuery = '';
+        searchTerm = '';
         refs.loadMoreBtn.classList.add('is-hidden');
         return Notify.failure(
           "We're sorry, but you've reached the end of search results."
